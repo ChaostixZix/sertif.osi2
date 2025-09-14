@@ -1,0 +1,82 @@
+# Certificate Management System (OSI2) - Product Requirements Document
+
+## Project Overview
+A simple, modern web application for managing digital certificates with Google Sheets and Google Drive integration. No login required, no complex authentication - just a straightforward certificate management system.
+
+## Core Objectives
+- Centralized certificate management with intuitive dashboard
+- Seamless Google Sheets synchronization for participant data
+- Google Drive integration for organized certificate storage
+- Automated workflow for certificate generation and distribution
+
+## Key Features
+
+### 1. Certificate Dashboard
+- Simple table-based interface for viewing and managing certificates
+- Real-time data from Google Sheets
+- Basic CRUD operations for certificate records
+
+### 2. Google Sheets Integration
+- Read participant data from Google Sheets
+- Write metadata (FolderId, isShared, isFolderExists) back to sheets
+- Support for defined sheet structure:
+  ```
+  Timestamp | Email Address | Nama Peserta | Ikut OSI/OSH | Ikut OSI2/OSH di Kota... | Jenjang | Mata Pelajaran | FolderId | isShared | isFolderExists
+  ```
+
+### 3. Google Drive Organization
+- Automatic folder creation for each participant
+- Certificate PDF upload and storage
+- File sharing with participants via email
+
+### 4. Admin Configuration
+- Google Sheets ID configuration
+- Drive folder management
+- Service account credentials setup
+- Simple configuration interface
+
+### 5. Certificate Generation
+- Certificate preview page
+- PDF generation and download
+- Print-friendly certificate design
+
+## Technical Requirements
+
+### Technology Stack
+- Next.js 14 with App Router
+- TypeScript
+- Radix UI + shadcn/ui components
+- Tailwind CSS 4
+- React Hook Form + Zod validation
+- pnpm package manager
+
+### Google APIs
+- Google Sheets API v4
+- Google Drive API v3
+- Service Account authentication
+
+### Data Management
+- Server-side Google Sheets integration
+- Client-side data table with sorting/filtering
+- Real-time synchronization
+- Error handling and validation
+
+## Implementation Approach
+- Simple, no-frills design
+- Direct Google API integration
+- Minimal authentication (admin only)
+- Focus on core functionality
+- Clean, maintainable code structure
+
+## Success Criteria
+- Users can view and manage certificate data from Google Sheets
+- Automatic folder creation and file organization in Google Drive
+- Certificate generation and PDF download functionality
+- Seamless data synchronization between app and Google services
+- Simple admin interface for configuration
+
+## Constraints
+- No user authentication/login system
+- No complex user management
+- Keep it simple and focused on core certificate management
+- Direct integration with Google services only

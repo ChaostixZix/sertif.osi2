@@ -1,0 +1,109 @@
+{
+	"meta": {
+		"generatedAt": "2025-09-14T08:35:39.044Z",
+		"tasksAnalyzed": 12,
+		"totalTasks": 12,
+		"analysisCount": 12,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Project Setup and Google API Configuration",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Based on the task to set up the project and Google API, create subtasks for: 1. Installing all required npm dependencies like `googleapis`, `zod`, `react-hook-form`, and `lucide-react`. 2. Initializing `shadcn/ui` and adding the `table`, `button`, `input`, and `toast` components via its CLI. 3. Creating the `.env.local` file with placeholders for Google Service Account credentials and the Google Sheet ID. 4. Implementing the JWT authentication client in a new `lib/google-auth.ts` file to create an authenticated client for server-side API calls.",
+			"reasoning": "Codebase analysis shows a barebones Next.js project with no required dependencies or configuration files present. This task is entirely greenfield. The complexity is rated 4/10 because it involves multiple distinct setup processes: dependency installation, `shadcn/ui` CLI initialization (which modifies multiple config files), secure credential management setup, and writing the initial authentication boilerplate. While not algorithmically complex, getting the foundation right is critical and has several steps."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Develop Google Sheets API Service",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "To develop the Google Sheets API service, create subtasks for: 1. Creating the `lib/sheets.ts` file and defining a Zod schema for the participant data structure to ensure type safety. 2. Implementing the `getParticipants` function that uses the Google auth client to fetch data from the sheet and parses it using the Zod schema. 3. Implementing the `updateParticipantMetadata` function that takes a row index and metadata to update specific cells in the Google Sheet, requiring correct range calculation.",
+			"reasoning": "The codebase has no `lib` directory or any API service files. This task is to create the `lib/sheets.ts` file from scratch. Complexity is 5/10 because it involves not just making API calls with the `googleapis` library, but also handling data transformation from the API's array-based format into structured objects, validating this data with a new Zod schema, and correctly calculating cell ranges for write operations."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Build Certificate Dashboard UI with Data Table",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "For the certificate dashboard UI, create subtasks to: 1. Create the main route `app/dashboard/page.tsx` as a server component to fetch initial participant data using the service from Task 2. 2. Build a reusable client component for the data table, defining the columns based on the participant schema from Task 2. 3. Implement client-side sorting functionality for the table columns using React state. 4. Implement a client-side filtering input that filters the table data based on user input.",
+			"reasoning": "No `/dashboard` route or data table components exist. This task requires building a significant UI feature from scratch. While `shadcn/ui` provides table components, creating a fully-featured, sortable, and filterable data table requires substantial client-side logic for state management and event handling, plus a server component for the initial data fetch. The complexity score of 6/10 reflects the need to combine server and client components and manage client-side state for interactivity."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Develop Google Drive API Service",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "To develop the Google Drive API service, create subtasks for: 1. Creating the new file `lib/drive.ts` and setting it up to use the authenticated Google API client from Task 1. 2. Implementing a `createFolder` function that accepts a folder name and parent ID, and uses the Drive API to create a new folder. 3. Implementing a `shareFolder` function that accepts a folder ID and an email address to grant viewer permissions using the Drive API.",
+			"reasoning": "The `lib/drive.ts` file does not exist. This is a greenfield service creation task. Its complexity is 4/10, slightly lower than the Sheets service, because it primarily involves making straightforward, well-documented API calls (`files.create`, `permissions.create`) without the need for complex data parsing or transformation. It leverages the authentication pattern already established in Task 1."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Implement Folder Creation Workflow",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "To implement the folder creation workflow, create subtasks for: 1. Creating a new server action, `createParticipantFolder`, in a file like `app/actions.ts`. 2. Integrating the `createFolder` service from `lib/drive.ts` into the server action to create the folder on Google Drive. 3. Upon successful folder creation, integrating the `updateParticipantMetadata` service from `lib/sheets.ts` to write the new folder ID back to the sheet. 4. Modifying the dashboard table component (from Task 3) to add a 'Create Folder' button to each row that invokes this server action.",
+			"reasoning": "This is an integration task connecting the UI with two separate backend services. No server actions exist yet. The complexity is 6/10 because it requires creating a new server action to orchestrate a multi-step workflow (create folder in Drive, then update Sheet), handling the data flow from a client component to the server, and modifying the UI to trigger the process. It's the first task to tie multiple, distinct modules together."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Create Certificate Preview Page",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "To create the certificate preview page, create subtasks for: 1. Setting up the new dynamic route `app/certificate/[participantId]/preview/page.tsx`. 2. Implementing the server-side data fetching on this page to get a specific participant's data from Google Sheets. 3. Designing the visual layout of the certificate using HTML and Tailwind CSS, and dynamically inserting the participant's data into the template. 4. Adding print-specific CSS styles using `@media print` to ensure the certificate is formatted correctly when printed or saved as PDF.",
+			"reasoning": "The codebase has no such dynamic route. This task is a mix of backend work (fetching a single record, which may require a new function in `lib/sheets.ts`) and significant frontend work (HTML/CSS layout). The complexity is 5/10, primarily driven by the need to create a polished, print-ready design with Tailwind CSS, which can be detailed and time-consuming to perfect."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Implement Server-Side PDF Generation",
+			"complexityScore": 9,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "For server-side PDF generation, create subtasks to: 1. Install and configure `puppeteer-core` and `@sparticuz/chromium`, which are specialized for serverless environments like Vercel. 2. Refactor the certificate preview (from Task 6) into a reusable component that can be rendered to a static HTML string on the server. 3. Create a new server action that launches a headless browser, sets its content to the rendered HTML string, and generates a PDF buffer. 4. Implement robust error handling for the headless browser process, which can be prone to timeouts or configuration issues.",
+			"reasoning": "This is the most technically complex task. The codebase has no dependencies or logic for this. The complexity is 9/10 due to the inherent challenges of running a headless browser in a serverless environment. It requires specialized dependencies (`@sparticuz/chromium`), careful configuration to handle binaries, and a multi-step process (render React to string, launch browser, generate PDF) that is difficult to debug and prone to failure."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Implement PDF Upload to Google Drive",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "To implement PDF upload to Google Drive, create subtasks for: 1. Extending the `lib/drive.ts` service with a new `uploadPdf` function that accepts a folder ID, file name, and a PDF buffer. 2. Implementing the Google Drive API call for file creation using a media body within the `uploadPdf` function. 3. Creating a new orchestrator server action, `generateAndUploadCertificate`. 4. Integrating the PDF generation service (Task 7) and the new `uploadPdf` function into this server action to create a complete workflow.",
+			"reasoning": "This task involves creating a new server action and extending the `lib/drive.ts` service. The complexity is 6/10 because it requires orchestrating two complex, asynchronous server-side operations (PDF generation and file upload). Implementing the file upload itself is more complex than other Drive API calls, as it requires handling a file buffer and constructing a multipart request via the `googleapis` library."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Implement Folder Sharing Workflow",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "To implement the folder sharing workflow, create subtasks for: 1. Creating a new server action, `shareFolderWithParticipant`, that takes a folder ID, email, and row index. 2. Integrating the `shareFolder` service from `lib/drive.ts` into this action. 3. Upon success, calling the `updateParticipantMetadata` service to update the `isShared` status in the Google Sheet. 4. Adding a 'Share' button to the dashboard table, with conditional logic to show it only when a folder exists but is not yet shared.",
+			"reasoning": "This task is logically similar to the folder creation workflow (Task 5) but for a different action. It involves creating a new server action and modifying the UI. The complexity is 5/10 because while the pattern will have been established by Task 5, it still requires creating new, distinct code (server action, UI button with conditional logic) and orchestrating API calls to both Drive and Sheets."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Build Admin Configuration Page",
+			"complexityScore": 2,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "For the admin configuration page, create subtasks for: 1. Creating the new route and page file at `app/admin/page.tsx`. 2. Building a simple UI component on this page to read and display configuration values (like Sheet ID and Drive Folder ID) from `process.env`. 3. Implementing a basic protection mechanism, such as checking for a secret key in a URL query parameter, to prevent unauthorized access.",
+			"reasoning": "Codebase analysis confirms no `/admin` route exists. This is a low-complexity task (2/10) as it involves creating a new, simple, read-only page. The core logic is just reading from `process.env` and displaying the values. The 'protection' mechanism described is trivial (e.g., a simple string comparison), making this a straightforward greenfield addition with minimal logic."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Implement CRUD Operations for Certificate Records",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "To implement CRUD operations, create subtasks for: 1. Extending the `lib/sheets.ts` service with `updateRow` and `deleteRow` functions. 2. Building an 'Edit' modal component using shadcn/ui Dialog, containing a form managed by `react-hook-form` and validated by Zod. 3. Creating a server action for the update operation and connecting it to the edit form submission. 4. Creating a server action for the delete operation and connecting it to a 'Delete' button with a confirmation dialog. 5. Adding 'Edit' and 'Delete' action buttons to each row of the dashboard data table.",
+			"reasoning": "This task adds significant new functionality to the existing dashboard. Its complexity is high (8/10) because implementing the 'Update' feature is a substantial effort. It requires a modal, a complex form with state management (`react-hook-form`), client-side validation (`zod`), new server actions, and new, more complex methods in the Sheets API service for targeted row updates and deletions. This is a major feature, not a simple addition."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Add UI Feedback and Error Handling",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "To add UI feedback and error handling, create subtasks for: 1. Setting up a global `Toaster` provider in the application's root layout. 2. Refactoring all server actions (for folder creation, sharing, PDF generation, CRUD) to include `try/catch` blocks for error handling. 3. Implementing toast notifications for both success and error cases within each refactored server action. 4. Adding loading state indicators (e.g., disabling buttons, showing spinners) to the UI components that trigger these server actions to provide immediate user feedback.",
+			"reasoning": "This is a cross-cutting concern that requires refactoring rather than greenfield development. The complexity is 5/10 not because any single change is difficult, but because it requires systematically modifying a wide range of previously built features (every button and server action). Ensuring consistent behavior for loading states, success messages, and error handling across the entire application requires careful and broad implementation."
+		}
+	]
+}

@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Search,
   Filter,
@@ -20,60 +21,131 @@ import {
   Users,
   Trophy,
   Calendar,
+  Settings,
 } from "lucide-react"
 import Link from "next/link"
+import { testGoogleAuth, testDriveService } from "@/lib/actions"
+import { toast } from "sonner"
+import { CreateFolderButton } from "@/components/CreateFolderButton"
+import { ShareFolderButton } from "@/components/ShareFolderButton"
+import { EditParticipantModal } from "@/components/EditParticipantModal"
+import { DeleteParticipantDialog } from "@/components/DeleteParticipantDialog"
 
 // Mock data based on user's example
 const mockData = [
   {
     id: 1,
-    timestamp: "9/4/2025 15:39:13",
-    email: "yes.iam.egs@gmail.com",
-    nama: "BELEZZAQUEEN KALILA INDARYANTO",
+    rowIndex: 2,
+    Timestamp: "9/4/2025 15:39:13",
+    Email: "yes.iam.egs@gmail.com",
+    "Nama Lengkap": "BELEZZAQUEEN KALILA INDARYANTO",
+    "Nomor Telepon": "+62812345678",
+    Instansi: "SMP Negeri 1 Malang",
+    Jabatan: "Siswa",
     kompetisi: "OSI 2",
     kota: "MALANG",
     jenjang: "SMP",
     mataPelajaran: "Bahasa Inggris",
+    FolderId: "",
+    isShared: false,
+    isFolderExists: false,
   },
   {
     id: 2,
-    timestamp: "9/4/2025 14:22:45",
-    email: "student.champion@gmail.com",
-    nama: "AHMAD RIZKI PRATAMA",
+    rowIndex: 3,
+    Timestamp: "9/4/2025 14:22:45",
+    Email: "student.champion@gmail.com",
+    "Nama Lengkap": "AHMAD RIZKI PRATAMA",
+    "Nomor Telepon": "+62823456789",
+    Instansi: "SMA Negeri 1 Jakarta",
+    Jabatan: "Siswa",
     kompetisi: "OMNI",
     kota: "JAKARTA",
     jenjang: "SMA",
     mataPelajaran: "Matematika",
+    FolderId: "1ABC123XYZ",
+    isShared: false,
+    isFolderExists: true,
   },
   {
     id: 3,
-    timestamp: "9/4/2025 13:15:30",
-    email: "brilliant.mind@yahoo.com",
-    nama: "SARI DEWI KUSUMA",
+    rowIndex: 4,
+    Timestamp: "9/4/2025 13:15:30",
+    Email: "brilliant.mind@yahoo.com",
+    "Nama Lengkap": "SARI DEWI KUSUMA",
+    "Nomor Telepon": "+62834567890",
+    Instansi: "SMP Negeri 3 Surabaya",
+    Jabatan: "Siswa",
     kompetisi: "OSI 2",
     kota: "SURABAYA",
     jenjang: "SMP",
     mataPelajaran: "IPA",
+    FolderId: "",
+    isShared: false,
+    isFolderExists: false,
   },
   {
     id: 4,
-    timestamp: "9/4/2025 12:08:17",
-    email: "future.scientist@gmail.com",
-    nama: "BUDI SANTOSO WIJAYA",
+    rowIndex: 5,
+    Timestamp: "9/4/2025 12:08:17",
+    Email: "future.scientist@gmail.com",
+    "Nama Lengkap": "BUDI SANTOSO WIJAYA",
+    "Nomor Telepon": "+62845678901",
+    Instansi: "SMA Negeri 2 Bandung",
+    Jabatan: "Siswa",
     kompetisi: "OMNI",
     kota: "BANDUNG",
     jenjang: "SMA",
     mataPelajaran: "Fisika",
+    FolderId: "2DEF456ABC",
+    isShared: true,
+    isFolderExists: true,
   },
 ]
 
 export function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [isPending, startTransition] = useTransition()
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1)
+  }
+
+  const handleTestAuth = () => {
+    startTransition(async () => {
+      try {
+        const result = await testGoogleAuth()
+        if (result.success) {
+          toast.success(result.message)
+        } else {
+          toast.error(result.message)
+        }
+      } catch (error) {
+        toast.error("Failed to test authentication")
+      }
+    })
+  }
+
+  const handleTestDrive = () => {
+    startTransition(async () => {
+      try {
+        const result = await testDriveService('Test Participant', 'test@example.com')
+        if (result.success) {
+          toast.success(result.message)
+        } else {
+          toast.error(result.message)
+        }
+      } catch (error) {
+        toast.error("Failed to test Drive service")
+      }
+    })
+  }
 
   const filteredData = mockData.filter(
     (item) =>
-      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item["Nama Lengkap"].toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.Email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.kota.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
@@ -107,6 +179,28 @@ export function AdminDashboard() {
             <div className="flex items-center gap-2">
               {" "}
               {/* reduced gap from gap-3 to gap-2 */}
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/admin/config">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Config
+                </Link>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleTestAuth}
+                disabled={isPending}
+              >
+                {isPending ? "Testing..." : "Test Auth"}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleTestDrive}
+                disabled={isPending}
+              >
+                {isPending ? "Testing..." : "Test Drive"}
+              </Button>
               <Button variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
                 Export Data
@@ -180,6 +274,10 @@ export function AdminDashboard() {
                 </Button>
               </div>
             </div>
+            <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200 text-slate-700 text-[10px]">i</span>
+              Tips: ketik sebagian nama, email, atau kota untuk menyaring data.
+            </p>
           </CardHeader>
           <CardContent>
             <div className="border overflow-hidden rounded-sm">
@@ -202,9 +300,9 @@ export function AdminDashboard() {
                       key={item.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800"
                     >
-                      <TableCell className="font-mono text-sm text-muted-foreground py-4">{item.timestamp}</TableCell>
-                      <TableCell className="font-medium text-blue-600 py-4">{item.email}</TableCell>
-                      <TableCell className="font-semibold py-4">{item.nama}</TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground py-4">{item.Timestamp}</TableCell>
+                      <TableCell className="font-medium text-blue-600 py-4">{item.Email}</TableCell>
+                      <TableCell className="font-semibold py-4">{item["Nama Lengkap"]}</TableCell>
                       <TableCell className="py-4">
                         <Badge
                           variant={item.kompetisi === "OSI 2" ? "default" : "secondary"}
@@ -226,45 +324,74 @@ export function AdminDashboard() {
                       <TableCell className="font-medium py-4">{item.mataPelajaran}</TableCell>
                       <TableCell className="py-4">
                         <div className="flex items-center justify-center gap-1">
-                          <Link href={`/certificate/${item.id}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-sm"
-                              title="Lihat Sertifikat"
-                            >
-                              <Award className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <Link href={`/edit-data/${item.id}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-sm"
-                              title="Edit Data"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <Link href={`/change-email/${item.id}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-sm"
-                              title="Ubah Email"
-                            >
-                              <Mail className="w-4 h-4" />
-                            </Button>
-                          </Link>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link href={`/certificate/${item.id}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-sm"
+                                    title="Lihat Sertifikat"
+                                  >
+                                    <Award className="w-4 h-4" />
+                                  </Button>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>Lihat sertifikat</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <EditParticipantModal 
+                            participant={item}
+                            onSuccess={handleRefresh}
+                          />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link href={`/change-email/${item.id}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-sm"
+                                    title="Ubah Email"
+                                  >
+                                    <Mail className="w-4 h-4" />
+                                  </Button>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>Ubah email peserta</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <CreateFolderButton 
+                            participant={item} 
+                            onSuccess={(folderId) => {
+                              console.log('Folder created with ID:', folderId)
+                            }}
+                            onRefresh={handleRefresh}
+                          />
+                          <ShareFolderButton 
+                            participant={item} 
+                            onSuccess={(folderId) => {
+                              console.log('Folder shared with ID:', folderId)
+                            }}
+                            onRefresh={handleRefresh}
+                          />
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-slate-600 hover:text-slate-700 hover:bg-slate-50 rounded-sm"
-                              >
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-slate-600 hover:text-slate-700 hover:bg-slate-50 rounded-sm"
+                                    >
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Aksi lainnya</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 rounded-sm">
                               <DropdownMenuItem className="cursor-pointer" asChild>
@@ -278,6 +405,18 @@ export function AdminDashboard() {
                                   <Share className="w-4 h-4 mr-2" />
                                   Bagikan Folder
                                 </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50" 
+                                asChild
+                              >
+                                <div className="flex items-center">
+                                  <DeleteParticipantDialog 
+                                    participant={item}
+                                    onSuccess={handleRefresh}
+                                  />
+                                  <span className="ml-2">Hapus Data</span>
+                                </div>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

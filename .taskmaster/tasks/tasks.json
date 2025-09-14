@@ -1,0 +1,816 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Project Setup and Google API Configuration",
+        "description": "Initialize the Next.js project with specified dependencies and set up the environment for Google API authentication using a service account.",
+        "details": "Install necessary packages: `googleapis`, `zod`, `react-hook-form`, `lucide-react`, and shadcn/ui components like `table`, `button`, `input`, `toast`. Create a `.env.local` file to store Google Service Account credentials (client email, private key) and the Google Sheet ID. Create a `lib/google-auth.ts` file to configure the JWT client for server-side Google API access.",
+        "testStrategy": "Verify that all dependencies are installed correctly by checking `pnpm-lock.yaml`. Create a simple test script or a temporary server action to authenticate with Google APIs and log a success message. Ensure environment variables are loaded correctly using `process.env`.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Install Core NPM Packages",
+            "description": "Add the necessary backend, validation, and form management libraries to the project using the pnpm package manager.",
+            "dependencies": [],
+            "details": "Based on the `package.json` file, the core dependencies are missing. Run the command `pnpm add googleapis zod react-hook-form lucide-react` to install them.",
+            "status": "done",
+            "testStrategy": "After running the install command, verify that `googleapis`, `zod`, `react-hook-form`, and `lucide-react` are listed as dependencies in `package.json` and that the `pnpm-lock.yaml` file has been updated."
+          },
+          {
+            "id": 2,
+            "title": "Add Required shadcn/ui Components",
+            "description": "Use the shadcn/ui CLI to add the `table`, `button`, `input`, and `toast` components required for the user interface.",
+            "dependencies": [],
+            "details": "The project has a `components.json` file, indicating shadcn/ui is initialized. Use the CLI to add the specific components by running `pnpm dlx shadcn-ui@latest add table button input toast`.",
+            "status": "done",
+            "testStrategy": "Check for the creation of new component files within the `components/ui` directory (e.g., `table.tsx`, `button.tsx`, `input.tsx`, `toaster.tsx`)."
+          },
+          {
+            "id": 3,
+            "title": "Create and Configure Environment Variables File",
+            "description": "Create the local environment file to securely store Google Service Account credentials and the target Google Sheet ID.",
+            "dependencies": [],
+            "details": "Create a new file named `.env.local` in the project root. Add the following environment variables: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, and `GOOGLE_SHEET_ID`. The private key value should be wrapped in double quotes to handle newline characters, e.g., `GOOGLE_PRIVATE_KEY=\"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\"`. Also, add `.env.local` to the `.gitignore` file if it's not already there.",
+            "status": "done",
+            "testStrategy": "Create a temporary page or server component and log `process.env.GOOGLE_SHEET_ID` to the server console to ensure the variables are being loaded correctly by Next.js. Do not expose the private key or email on the client side."
+          },
+          {
+            "id": 4,
+            "title": "Implement Google API JWT Authentication Client",
+            "description": "Create a dedicated module to configure and export a JWT client for authenticating with Google APIs on the server side.",
+            "dependencies": [
+              "1.1",
+              "1.3"
+            ],
+            "details": "Create a new directory `lib` in the project root. Inside it, create a file named `google-auth.ts`. In this file, import `google` from the `googleapis` package. Read `GOOGLE_SERVICE_ACCOUNT_EMAIL` and `GOOGLE_PRIVATE_KEY` from `process.env`. Instantiate a `google.auth.JWT` client, providing the email, key, and an array of scopes: `['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']`. Export the configured JWT client instance for use in other server-side modules.",
+            "status": "done",
+            "testStrategy": "Ensure the `lib/google-auth.ts` file compiles without errors. The actual authentication will be tested in the next subtask."
+          },
+          {
+            "id": 5,
+            "title": "Create a Test Server Action to Verify Authentication",
+            "description": "Implement a simple server action to test the full Google API authentication flow, from loading environment variables to successful authorization.",
+            "dependencies": [
+              "1.4"
+            ],
+            "details": "Create a temporary server action, for example in `app/actions.ts`. The action will import the JWT client from `lib/google-auth.ts`. Inside the action, use a try/catch block to call the `authorize()` method on the client. Log a success message to the console on successful authorization or log the error if it fails. This will confirm that the credentials are correct and the client is configured properly.",
+            "status": "done",
+            "testStrategy": "Trigger the server action from a temporary client component (e.g., a button on the home page). Check the server-side console output for the success or error message."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Develop Google Sheets API Service",
+        "description": "Create a server-side service module to handle all interactions with the Google Sheets API, including reading participant data and updating metadata columns.",
+        "details": "In a new file `lib/sheets.ts`, implement functions using the `googleapis` package. Create `getParticipants()` to fetch all data from the specified sheet range. Create `updateParticipantMetadata(rowIndex, metadata)` to write `FolderId`, `isShared`, and `isFolderExists` back to the correct row. Define a Zod schema for the participant data to ensure type safety.",
+        "testStrategy": "Write unit tests for the service functions using a mock Google Sheets API response. On the dev server, call `getParticipants()` from a server component and log the output to verify data fetching. Manually trigger `updateParticipantMetadata` and check the Google Sheet to confirm the write operation was successful.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create `lib/sheets.ts` and Define Participant Zod Schema",
+            "description": "Create the new file `lib/sheets.ts` and define a Zod schema to represent a single participant's data structure. This schema should include fields for participant details (e.g., 'Nama Lengkap', 'Email') and the metadata columns ('FolderId', 'isShared', 'isFolderExists').",
+            "dependencies": [],
+            "details": "In `lib/sheets.ts`, import `z` from 'zod'. Define `ParticipantSchema` with appropriate types for each column in the Google Sheet. The metadata columns `FolderId`, `isShared`, and `isFolderExists` should be optional as they will be populated later. Export the schema and the inferred type `Participant`.",
+            "status": "done",
+            "testStrategy": "Verify the file `lib/sheets.ts` is created. Manually review the Zod schema to ensure it matches the columns in the target Google Sheet."
+          },
+          {
+            "id": 2,
+            "title": "Initialize Google Sheets API Client",
+            "description": "In `lib/sheets.ts`, import the authenticated Google JWT client from `lib/google-auth.ts` (from Task 1) and use it to initialize the Google Sheets API v4 client.",
+            "dependencies": [],
+            "details": "Import the `google` object from the `googleapis` package. Import the configured `auth` client from `lib/google-auth.ts`. Create a constant `sheets` by calling `google.sheets({ version: 'v4', auth })`. This `sheets` object will be used for all subsequent API calls in this module.",
+            "status": "done",
+            "testStrategy": "Add a temporary test function in `lib/sheets.ts` that attempts to use the `sheets` client (e.g., a simple `get` call with a known spreadsheet ID) and log the result to ensure authentication is successful."
+          },
+          {
+            "id": 3,
+            "title": "Implement `getParticipants` Function",
+            "description": "Implement and export an async function `getParticipants()` that fetches all data from the specified sheet and range, then parses it into an array of typed participant objects.",
+            "dependencies": [
+              "2.1",
+              "2.2"
+            ],
+            "details": "The function should read `process.env.GOOGLE_SHEET_ID` and a new `process.env.GOOGLE_SHEET_RANGE` for the target data. Use the `sheets.spreadsheets.values.get` method. The raw response will be an array of arrays. Map over this data, transforming each row into an object that conforms to the `ParticipantSchema`. Crucially, include the original `rowIndex` (starting from the first row of the range) in the returned object for each participant, as this is needed for updates.",
+            "status": "done",
+            "testStrategy": "Create a temporary server component or API route that calls `getParticipants()` and `console.log`s the result. Verify that the output is a correctly structured array of participant objects, each including a `rowIndex`."
+          },
+          {
+            "id": 4,
+            "title": "Implement `updateParticipantMetadata` Function",
+            "description": "Implement and export an async function `updateParticipantMetadata(rowIndex, metadata)` to write metadata back to the Google Sheet.",
+            "dependencies": [
+              "2.2"
+            ],
+            "details": "The function will accept a `rowIndex` and a `metadata` object containing `FolderId`, `isShared`, and `isFolderExists`. Use the `sheets.spreadsheets.values.update` method. You will need to dynamically construct the `range` in A1 notation (e.g., `'Sheet1'!G5:I5`) based on the provided `rowIndex` and the known columns for metadata. The `valueInputOption` should be set to `'USER_ENTERED'`. The request body should contain the values from the metadata object in the correct column order.",
+            "status": "done",
+            "testStrategy": "Manually call this function from a test script or temporary server action with a valid `rowIndex` and sample metadata. Check the Google Sheet to confirm that the correct cells in the specified row have been updated with the new values."
+          },
+          {
+            "id": 5,
+            "title": "Add Environment Validation and Error Handling",
+            "description": "Refactor the module to include robust error handling for API calls and add validation to ensure necessary environment variables are set.",
+            "dependencies": [
+              "2.3",
+              "2.4"
+            ],
+            "details": "Wrap all `googleapis` API calls (`get` and `update`) in `try...catch` blocks to handle potential API errors gracefully. At the top of the module, check for the existence of `process.env.GOOGLE_SHEET_ID` and `process.env.GOOGLE_SHEET_RANGE`. If they are missing, throw an informative error to prevent the application from running with an invalid configuration. Ensure functions return a consistent shape on error, such as `{ data: null, error: '...' }`.",
+            "status": "done",
+            "testStrategy": "Temporarily unset `GOOGLE_SHEET_ID` in `.env.local` and restart the dev server to verify that the startup error is thrown. Introduce a deliberate error in an API call (e.g., invalid range) to ensure the `catch` block is executed and an error is handled correctly."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Build Certificate Dashboard UI with Data Table",
+        "description": "Create the main dashboard page to display participant data fetched from Google Sheets in a sortable and filterable table.",
+        "details": "Create a new route `app/dashboard/page.tsx`. Use shadcn/ui's `Table` component to build the data table structure. The columns should match the Google Sheet structure. Implement client-side state management for sorting and filtering. The page component will be a server component that fetches initial data using the service from Task 2 and passes it to a client component wrapper for the table.",
+        "testStrategy": "Populate the Google Sheet with mock data. Verify that the dashboard table correctly renders all rows and columns. Test the sorting functionality on multiple columns (e.g., 'Nama Peserta', 'Timestamp'). Test the filtering functionality with a search input.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Dashboard Page and Fetch Initial Data",
+            "description": "Create the main server component for the dashboard route. This component will be responsible for fetching the initial list of participants from the Google Sheet and passing it to a client component.",
+            "dependencies": [],
+            "details": "Create the file `app/dashboard/page.tsx`. Implement it as an async Server Component. Import and call the `getParticipants` service (from Task 2) to fetch the data. The component will render a client-side wrapper, passing the fetched data as a prop.",
+            "status": "done",
+            "testStrategy": "Verify that the `app/dashboard/page.tsx` file is created. Run the application and navigate to `/dashboard`. Ensure there are no build or runtime errors and that the data fetching function is called successfully (e.g., by logging the fetched data on the server)."
+          },
+          {
+            "id": 2,
+            "title": "Define Participant Schema and Table Column Structure",
+            "description": "Define the data structure for a participant using Zod and create the column definitions for the data table, specifying the header and cell content for each column.",
+            "dependencies": [],
+            "details": "Create or update a `lib/schema.ts` file to include a `participantSchema` using Zod, matching the columns from the Google Sheet. Create a new file `app/dashboard/columns.tsx` that exports a `columns` array of type `ColumnDef<Participant>`. Define each column's `accessorKey` and `header` text. This file will be a client component.",
+            "status": "done",
+            "testStrategy": "Review the `participantSchema` to ensure it correctly types all expected fields from the Google Sheet. Check the `columns.tsx` file to confirm all required columns are defined with correct headers."
+          },
+          {
+            "id": 3,
+            "title": "Build the Client-Side DataTable Component",
+            "description": "Create a reusable client component that takes data and column definitions to render a table using `tanstack/react-table` and shadcn/ui's `Table` components.",
+            "dependencies": [
+              "3.2"
+            ],
+            "details": "Create a new file `app/dashboard/data-table.tsx`. Mark it as a client component with `'use client'`. This component will accept `columns` and `data` as props. Use the `useReactTable` hook from `@tanstack/react-table` to initialize the table instance. Render the table structure using shadcn/ui components: `Table`, `TableHeader`, `TableHead`, `TableBody`, `TableRow`, and `TableCell` by iterating over the table instance's methods.",
+            "status": "done",
+            "testStrategy": "In `app/dashboard/page.tsx`, import and render the `DataTable` component, passing the fetched data and imported columns. Verify that the table renders on the `/dashboard` page with the correct headers and all rows of data from the mock Google Sheet."
+          },
+          {
+            "id": 4,
+            "title": "Implement Column Sorting Functionality",
+            "description": "Add sorting capabilities to the data table, allowing users to sort the data by clicking on column headers.",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "In `app/dashboard/data-table.tsx`, add state for sorting using `useState<SortingState>([])`. Pass the state and its updater to the `useReactTable` hook. In `app/dashboard/columns.tsx`, wrap the header text in a `Button` component with an `onClick` handler that calls `column.toggleSorting()`. Add an icon like `ArrowUpDown` from `lucide-react` to indicate sortability.",
+            "status": "done",
+            "testStrategy": "Navigate to the dashboard. Click on the headers for sortable columns (e.g., 'Nama Peserta', 'Timestamp'). Verify that the table data re-sorts in ascending and descending order correctly. Check that the sort indicator icon appears and changes direction."
+          },
+          {
+            "id": 5,
+            "title": "Implement Global Filtering (Search) Functionality",
+            "description": "Add a search input field to the dashboard that filters the table rows based on user input across all columns.",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "In `app/dashboard/data-table.tsx`, add state for the global filter using `useState<string>('')`. Pass the state to the `useReactTable` hook. Add a shadcn/ui `Input` component above the table. Set its `value` to the filter state and its `onChange` event to update the filter state. This will filter the table as the user types.",
+            "status": "done",
+            "testStrategy": "Go to the dashboard page. Type a search query into the new input field (e.g., a participant's name). Verify that the table updates in real-time to show only the rows that contain the search query. Clear the input and verify that the full table data is displayed again."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Develop Google Drive API Service",
+        "description": "Create a server-side service module for Google Drive API interactions, specifically for creating folders and managing file permissions.",
+        "details": "In a new file `lib/drive.ts`, use the `googleapis` package and the authenticated client from Task 1. Implement `createFolder(folderName, parentFolderId)` which creates a new folder for a participant inside a main app folder and returns the `folderId`. Implement `shareFolder(folderId, emailAddress)` to grant viewer access to the participant.",
+        "testStrategy": "Write unit tests for the Drive service functions. Create a server action that calls `createFolder` and `shareFolder`. Trigger this action and verify in Google Drive that the folder is created in the correct location and that sharing permissions are set correctly for the specified email.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize `lib/drive.ts` and Google Drive API Client",
+            "description": "Create the `lib/drive.ts` file and set up the Google Drive API client instance. This involves importing the necessary authentication module and configuring the client for use in other functions.",
+            "dependencies": [],
+            "details": "Create a new file at `lib/drive.ts`. Import the `auth` object from `lib/google-auth.ts` and the `google` object from `googleapis`. Use these to instantiate the Drive v3 API client: `const drive = google.drive({ version: 'v3', auth });`. Also, verify that the `https://www.googleapis.com/auth/drive` scope is included in the `lib/google-auth.ts` configuration as specified in Task 1.",
+            "status": "done",
+            "testStrategy": "Confirm the file `lib/drive.ts` is created and the `drive` client is exported. Run the application to ensure there are no import or initialization errors."
+          },
+          {
+            "id": 2,
+            "title": "Implement `createFolder` Function",
+            "description": "In `lib/drive.ts`, implement the `createFolder` function to create a new folder within a specified parent folder in Google Drive.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Implement an async function `createFolder(folderName: string, parentFolderId: string)`. Use the `drive.files.create` method from the client created in subtask 4.1. The request body must include `name: folderName`, `mimeType: 'application/vnd.google-apps.folder'`, and `parents: [parentFolderId]`. The function should handle the API response and return the `id` of the newly created folder as a string.",
+            "status": "done",
+            "testStrategy": "Temporarily call this function from a test server action. Verify in Google Drive that a folder with the correct name is created inside the correct parent folder."
+          },
+          {
+            "id": 3,
+            "title": "Implement `shareFolder` Function",
+            "description": "In `lib/drive.ts`, implement the `shareFolder` function to grant viewer permissions to a specific user for a given folder.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Implement an async function `shareFolder(folderId: string, emailAddress: string)`. Use the `drive.permissions.create` method. The request body must include `fileId: folderId`, and the resource body should specify `role: 'reader'`, `type: 'user'`, and `emailAddress: emailAddress`. The task description mentions 'viewer' access, which corresponds to the 'reader' role in the API.",
+            "status": "done",
+            "testStrategy": "Using a folder ID from a manually created folder or from the previous subtask, call this function from a test server action. Check the folder's sharing settings in Google Drive to confirm the specified email has been added as a Viewer."
+          },
+          {
+            "id": 4,
+            "title": "Add Type Definitions and Robust Error Handling",
+            "description": "Refactor the functions in `lib/drive.ts` to include explicit TypeScript types and robust error handling to make the service more reliable.",
+            "dependencies": [
+              "4.2",
+              "4.3"
+            ],
+            "details": "Add explicit return types to `createFolder` and `shareFolder`, such as `Promise<string | null>` for `createFolder`. Wrap the Google API calls within `try...catch` blocks. In the `catch` block, log the error to the console for debugging purposes and return `null` or re-throw a structured error to indicate failure. Add JSDoc comments to both functions explaining their purpose, parameters, and return values.",
+            "status": "done",
+            "testStrategy": "Review the code to ensure types are defined and `try...catch` blocks are implemented. Manually test error cases, e.g., by providing an invalid `parentFolderId`, and verify that the function handles the error gracefully without crashing."
+          },
+          {
+            "id": 5,
+            "title": "Create Test Server Action for Service Verification",
+            "description": "Create a server action that calls both `createFolder` and `shareFolder` to perform an end-to-end test of the Drive service.",
+            "dependencies": [
+              "4.4"
+            ],
+            "details": "Create a new file, e.g., `app/actions/test-drive-actions.ts`. Define a server action that takes a test name and email. Inside the action, call `createFolder` using a main application folder ID stored in `.env.local`. If the folder is created successfully, use the returned `folderId` to call `shareFolder` with the test email. This action will serve as the primary integration test for the service.",
+            "status": "done",
+            "testStrategy": "Trigger the server action from a temporary button on a development page. Verify in Google Drive that the folder is created in the correct location and that sharing permissions are set correctly for the specified email, fulfilling the parent task's test strategy."
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Implement Folder Creation Workflow",
+        "description": "Integrate the Google Drive folder creation functionality into the dashboard and update the Google Sheet with the new folder's ID.",
+        "details": "Create a server action `createParticipantFolder(participantData, rowIndex)`. This action will call the `createFolder` service from Task 4. Upon success, it will call the `updateParticipantMetadata` service from Task 2 to write the new `FolderId` and `isFolderExists=true` back to the sheet. Add a 'Create Folder' button to each row in the dashboard table that triggers this server action.",
+        "testStrategy": "On the dashboard, click the 'Create Folder' button for a participant. Verify that a folder is created in Google Drive. Check the Google Sheet to confirm that the `FolderId` and `isFolderExists` columns for that participant's row have been updated. The button should become disabled or hidden after a folder is created.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3,
+          4
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create `createParticipantFolder` Server Action",
+            "description": "In `lib/actions.ts`, define and export a new server action named `createParticipantFolder`. This action will accept `participantData` and `rowIndex` as arguments. It should orchestrate the folder creation and sheet update logic.",
+            "dependencies": [],
+            "details": "Implement the `createParticipantFolder(participantData: Participant, rowIndex: number)` function. Inside this function, call the `createFolder` service from `lib/drive.ts`, passing the participant's name as the folder name. On a successful response, use the returned `folderId` to call the `updateParticipantMetadata` service from `lib/sheets.ts`, updating the sheet at the given `rowIndex` with the new `FolderId` and setting `isFolderExists` to `TRUE`.",
+            "status": "done",
+            "testStrategy": "Manually invoke the action from a temporary test page or component and verify that it correctly calls the dependent services. Check Google Drive for the new folder and the Google Sheet for the updated row."
+          },
+          {
+            "id": 2,
+            "title": "Develop the `CreateFolderButton` Client Component",
+            "description": "Create a new client component, `components/CreateFolderButton.tsx`, that will render the button for triggering the folder creation workflow. This component will manage its own loading state.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "The component should accept `participantData` and `rowIndex` as props. Use the `useFormStatus` hook from 'react-dom' to show a loading spinner or disable the button while the server action is pending. The button's `onClick` or form's `action` attribute will invoke the `createParticipantFolder` server action with the necessary props.",
+            "status": "done",
+            "testStrategy": "Render the component in Storybook or a test page. Verify that clicking the button triggers the server action and that the button correctly displays a pending/loading state."
+          },
+          {
+            "id": 3,
+            "title": "Integrate Button into Dashboard Table Columns",
+            "description": "Modify `app/dashboard/columns.tsx` to add a new 'Actions' column to the data table. This column will conditionally render the `CreateFolderButton` for each participant.",
+            "dependencies": [
+              "5.2"
+            ],
+            "details": "In the `columns.tsx` file, define a new column with the ID 'actions'. In the `cell` renderer for this column, check the `isFolderExists` property of the row's data. If it is `false` or falsy, render the `CreateFolderButton` component, passing the `row.original` data (participant) and `row.index` as props. If `isFolderExists` is `true`, render a disabled button or text indicating the folder already exists (e.g., a green checkmark icon).",
+            "status": "done",
+            "testStrategy": "Load the dashboard page. Verify that the 'Create Folder' button appears only for rows where `isFolderExists` is `FALSE`. For rows where it is `TRUE`, verify that the alternative UI (e.g., disabled button or checkmark) is displayed."
+          },
+          {
+            "id": 4,
+            "title": "Implement UI Refresh on Successful Creation",
+            "description": "Update the `createParticipantFolder` server action to trigger a data revalidation, ensuring the dashboard UI updates automatically after a folder is created.",
+            "dependencies": [
+              "5.1",
+              "5.3"
+            ],
+            "details": "In `lib/actions.ts`, at the end of the `createParticipantFolder` function's success path, add a call to `revalidatePath('/dashboard')` from `next/cache`. This will invalidate the cache for the dashboard page, causing Next.js to re-fetch the data from the Google Sheet and re-render the table. The `CreateFolderButton` will then be replaced by the success state UI defined in the previous subtask.",
+            "status": "done",
+            "testStrategy": "Click the 'Create Folder' button on the dashboard. After the action completes, verify that the page automatically refreshes the table data and the button for that row is replaced by the 'folder exists' indicator without a manual page reload."
+          },
+          {
+            "id": 5,
+            "title": "Add Error Handling and User Feedback",
+            "description": "Implement robust error handling within the server action and provide feedback to the user on the client-side if the folder creation process fails.",
+            "dependencies": [
+              "5.1",
+              "5.2"
+            ],
+            "details": "Wrap the logic inside the `createParticipantFolder` server action in a `try...catch` block. If an error occurs (e.g., API permission issue, invalid ID), log the error and return an object with an error message, like `{ error: 'Failed to create folder.' }`. In the `CreateFolderButton.tsx` component, handle the response from the server action. If an error object is returned, use a toast notification library (like `sonner`) to display the error message to the user.",
+            "status": "done",
+            "testStrategy": "Simulate an error in the `createParticipantFolder` action (e.g., by providing an invalid parent folder ID). Click the button on the dashboard and verify that a user-friendly error toast appears and the button returns to its normal state."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Create Certificate Preview Page",
+        "description": "Design and build a dynamic page that displays a preview of the certificate with participant data.",
+        "details": "Create a new dynamic route `app/certificate/[participantId]/preview/page.tsx`. This page will fetch the specific participant's data. Design the certificate layout using HTML and Tailwind CSS, ensuring it is print-friendly (e.g., using `@media print`). The page should dynamically populate fields like 'Nama Peserta', 'Mata Pelajaran', etc.",
+        "testStrategy": "Navigate to the preview URL with a valid participant ID. Verify that all dynamic data is correctly displayed on the certificate template. Use browser developer tools to simulate print view and ensure the layout is correct and background graphics are visible.",
+        "priority": "medium",
+        "dependencies": [
+          2
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Dynamic Route and Page Component File",
+            "description": "Create the necessary file and folder structure for the certificate preview page at `app/certificate/[participantId]/preview/page.tsx`. Set up a basic Next.js Server Component that correctly receives `params` from the dynamic URL to access the `participantId`.",
+            "dependencies": [],
+            "details": "The file `app/certificate/[participantId]/preview/page.tsx` needs to be created. The component should be defined as an async function `CertificatePreviewPage({ params }: { params: { participantId: string } })` to handle the dynamic segment.",
+            "status": "done",
+            "testStrategy": "Navigate to a test URL like `/certificate/123/preview`. Verify that the page loads without errors and that you can log the `participantId` ('123') from the `params` object within the component."
+          },
+          {
+            "id": 2,
+            "title": "Implement Single Participant Data Fetching Logic",
+            "description": "Based on the existing Google Sheets service (likely in `lib/sheets.ts` or similar), create a new function `getParticipantById(id: string)` that fetches data for a single row from the Google Sheet using the provided ID (which corresponds to the sheet's row number).",
+            "dependencies": [],
+            "details": "The existing data fetching logic likely gets a whole range of participants. This new function should construct a specific range string (e.g., `'Sheet1'!A${id}:Z${id}`) to request only one participant's data from the Google Sheets API. It should parse this single row and return a structured participant object.",
+            "status": "done",
+            "testStrategy": "Create a temporary test script or server action to call `getParticipantById` with a known valid row number. Verify that it returns the correct data object for that specific participant."
+          },
+          {
+            "id": 3,
+            "title": "Build Static Certificate Layout with HTML and Tailwind CSS",
+            "description": "In the `page.tsx` component, design and build the static visual structure of the certificate. This includes adding a background image, certificate border, logos, and static text like 'Sertifikat Penyelesaian'. Use placeholder text for all dynamic fields.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Use `div` elements with Tailwind CSS for layout. Position elements absolutely or use a grid/flexbox system to arrange the content. Assume a background image will be placed in the `public` directory and referenced using `next/image` or a CSS `background-image` property.",
+            "status": "done",
+            "testStrategy": "View the page in the browser. The static layout should be visually correct, resembling a certificate template. All placeholder text for dynamic fields should be visible in their correct positions."
+          },
+          {
+            "id": 4,
+            "title": "Fetch and Populate Certificate with Dynamic Data",
+            "description": "In the `CertificatePreviewPage` server component, use the `participantId` from the URL to call the `getParticipantById` function created in subtask 6.2. Then, pass the fetched data to the certificate layout and replace all placeholder text with the corresponding dynamic data.",
+            "dependencies": [
+              "6.2",
+              "6.3"
+            ],
+            "details": "The page component will be an `async` function. It will `await` the result of `getParticipantById(params.participantId)`. The returned data object (e.g., `participant.name`, `participant.course`) will then be used to populate the JSX elements in the certificate layout.",
+            "status": "done",
+            "testStrategy": "Navigate to the preview URL with a valid participant ID. Verify that all dynamic fields ('Nama Peserta', 'Mata Pelajaran', 'Tanggal', etc.) are correctly filled with data from the Google Sheet."
+          },
+          {
+            "id": 5,
+            "title": "Implement Print-Friendly Styles",
+            "description": "Apply print-specific styles to the certificate component to ensure it prints correctly. This includes forcing the background image to print and hiding any non-certificate UI elements like a 'Print' button.",
+            "dependencies": [
+              "6.4"
+            ],
+            "details": "Use Tailwind's `print:` variants (e.g., `print:hidden` for a button, `print:bg-white` for the body). To ensure the background image prints, add a utility class or a global style with `print-color-adjust: exact;`. The layout should be configured to fit a standard paper size (e.g., A4 landscape).",
+            "status": "done",
+            "testStrategy": "Open the page in a browser and use the 'Print Preview' feature. Verify that the certificate layout is correct, the background image is visible, and any on-screen-only UI elements are hidden. The preview should show a single page."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Implement Server-Side PDF Generation",
+        "description": "Set up a mechanism to convert the HTML certificate preview into a PDF file on the server.",
+        "details": "Since this is a serverless environment, a headless browser approach is best. Use a library like `puppeteer-core` with `@sparticuz/chromium` for Vercel compatibility. Create a server action or API route that takes participant data, renders the certificate component to an HTML string, launches a headless browser, sets the content, and generates a PDF buffer.",
+        "testStrategy": "Create a test button that triggers the PDF generation server action. Verify that a valid, non-corrupt PDF file buffer is created. Save the buffer to a temporary file and manually inspect it to ensure the visual output matches the HTML preview from Task 6.",
+        "priority": "high",
+        "dependencies": [
+          6
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Install and Configure PDF Generation Dependencies",
+            "description": "Add the necessary npm packages for server-side PDF generation in a Vercel environment. This includes `puppeteer-core` for browser automation and `@sparticuz/chromium` which provides a compatible Chromium binary for serverless functions.",
+            "dependencies": [],
+            "details": "Run `npm install puppeteer-core @sparticuz/chromium`. Verify that the packages are correctly added to the `package.json` file. No code changes are required in this step, it is purely for dependency setup.",
+            "status": "done",
+            "testStrategy": "After installation, check `package.json` and the `node_modules` directory to ensure `puppeteer-core` and `@sparticuz/chromium` are present."
+          },
+          {
+            "id": 2,
+            "title": "Create PDF Service Module and HTML Rendering Function",
+            "description": "Create a new service file `src/lib/pdf.ts`. In this file, add a function that takes participant data, renders the certificate React component to a static HTML string using `react-dom/server`, and returns the HTML.",
+            "dependencies": [],
+            "details": "Create `src/lib/pdf.ts`. Import `renderToStaticMarkup` from `react-dom/server` and the certificate component (e.g., `CertificatePreview` from `src/components/CertificatePreview.tsx`). Create an exported async function `renderCertificateHTML(participantData)` that passes the data as props to the component and returns the resulting HTML string.",
+            "status": "done",
+            "testStrategy": "Create a temporary test script or server action that calls `renderCertificateHTML` and logs the output. Verify that it produces a valid, complete HTML document string."
+          },
+          {
+            "id": 3,
+            "title": "Implement Headless Browser PDF Generation Logic",
+            "description": "In `src/lib/pdf.ts`, create the main function `generatePdfBuffer(htmlContent)` that launches a headless browser, sets its content to the provided HTML, and generates a PDF, returning it as a Buffer.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "Import `puppeteer` from `puppeteer-core` and `chromium` from `@sparticuz/chromium`. The `generatePdfBuffer` function will configure chromium for serverless execution (`args: chromium.args`, `executablePath`, `headless: chromium.headless`). It will launch a browser, create a new page, use `page.setContent()` with the HTML string, and then call `page.pdf()` with appropriate format options (e.g., A4, landscape). The function should return the resulting PDF buffer.",
+            "status": "done",
+            "testStrategy": "Test this function by passing it a simple hardcoded HTML string ('<h1>Hello World</h1>'). Verify that it returns a non-empty Buffer that represents a valid PDF file."
+          },
+          {
+            "id": 4,
+            "title": "Create `generateCertificatePdf` Server Action",
+            "description": "In `src/app/actions.ts`, create a new server action `generateCertificatePdf(participantData)` that orchestrates the PDF generation process by calling the functions from the new PDF service.",
+            "dependencies": [
+              "7.2",
+              "7.3"
+            ],
+            "details": "Import `renderCertificateHTML` and `generatePdfBuffer` from `src/lib/pdf.ts` into `src/app/actions.ts`. The new server action `generateCertificatePdf` will first call `renderCertificateHTML` with the participant data to get the HTML string. Then, it will pass this HTML to `generatePdfBuffer` to get the final PDF buffer. For now, the action will return the buffer or a success message. Error handling should be included.",
+            "status": "done",
+            "testStrategy": "Call the server action from a test environment. Check that it executes without errors and returns a Buffer. The subsequent subtask will provide a UI to trigger this for end-to-end testing."
+          },
+          {
+            "id": 5,
+            "title": "Add a Test Download Button to the Dashboard UI",
+            "description": "Add a button to the participant rows in the dashboard (`src/app/page.tsx`) that triggers the `generateCertificatePdf` server action and allows the user to download the resulting PDF for verification.",
+            "dependencies": [
+              "7.4"
+            ],
+            "details": "In the dashboard component, add a new button labeled 'Download PDF'. The button's `onClick` handler will call the `generateCertificatePdf` server action. Upon receiving the PDF buffer, the client-side code will create a Blob, generate an object URL, and trigger a browser download. This provides the mechanism for the manual verification described in the parent task's test strategy.",
+            "status": "done",
+            "testStrategy": "Click the 'Download PDF' button for a participant on the dashboard. Verify that a PDF file is downloaded. Open the file and visually inspect it to ensure it matches the HTML certificate preview and contains the correct participant data."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Implement PDF Upload to Google Drive",
+        "description": "Extend the Google Drive service to handle file uploads and integrate it into the certificate generation workflow.",
+        "details": "In `lib/drive.ts`, add a new function `uploadPdf(folderId, pdfBuffer, fileName)`. This function will use the Drive API's `files.create` method with `media.body` to upload the PDF buffer. Create a new server action `generateAndUploadCertificate(participantData)` that orchestrates the process: call the PDF generation service (Task 7), then call `uploadPdf` to save it to the participant's folder.",
+        "testStrategy": "Trigger the `generateAndUploadCertificate` action. Verify in Google Drive that the PDF certificate appears inside the correct participant's folder. Download the file from Drive and confirm it's a valid, viewable PDF.",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          5,
+          7
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement `uploadPdf` function in Google Drive service",
+            "description": "In `lib/drive.ts`, create a new function to handle the upload of a PDF buffer to a specified Google Drive folder.",
+            "dependencies": [],
+            "details": "Add a new exported async function `uploadPdf(folderId: string, pdfBuffer: Buffer, fileName: string)` to `lib/drive.ts`. This function will use the existing `getDriveService` to obtain an authenticated client. It will then call `drive.files.create` with a `requestBody` containing the `name`, `mimeType: 'application/pdf'`, and `parents: [folderId]`, and a `media` object with `mimeType: 'application/pdf'` and `body: pdfBuffer`. The function should return the `id` and `webViewLink` of the created file upon success.",
+            "status": "done",
+            "testStrategy": "Create a temporary test script or server action that reads a local dummy PDF file into a buffer and calls `uploadPdf` with a valid test folder ID. Verify the file appears in the correct Google Drive folder and that a valid file ID and link are returned."
+          },
+          {
+            "id": 2,
+            "title": "Create `generateAndUploadCertificate` server action skeleton",
+            "description": "In `app/actions.ts`, define the basic structure for the new server action that will orchestrate the certificate generation and upload process.",
+            "dependencies": [],
+            "details": "Create a new exported async function `generateAndUploadCertificate(participant: Participant, rowIndex: number)` in `app/actions.ts`. Import the `Participant` type from `types/index.ts`. The function should include a try/catch block for error handling and return a `{ success: boolean, message?: string }` object, following the pattern of existing actions like `createParticipantFolder`.",
+            "status": "done",
+            "testStrategy": "Temporarily add a button to the UI that calls this new action. Verify that the action can be triggered and that it returns a success or error object correctly, even with an empty implementation."
+          },
+          {
+            "id": 3,
+            "title": "Integrate PDF generation service into the server action",
+            "description": "Call the PDF generation service from within the `generateAndUploadCertificate` action to create the PDF buffer.",
+            "dependencies": [
+              "8.2"
+            ],
+            "details": "Inside the `generateAndUploadCertificate` action in `app/actions.ts`, import the PDF generation function (e.g., `generateCertificatePdf` from `lib/pdf.ts`, as defined in Task 7). Call this function, passing the `participant` data to it. Store the returned PDF `Buffer` in a variable for the next step. Ensure proper error handling if the buffer generation fails.",
+            "status": "done",
+            "testStrategy": "Add `console.log` to the action to inspect the returned buffer. Verify that it's a valid Buffer object and not null or undefined when the action is triggered."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Google Drive upload into the server action",
+            "description": "Use the newly created `uploadPdf` function to upload the generated PDF buffer to the participant's folder.",
+            "dependencies": [
+              "8.1",
+              "8.3"
+            ],
+            "details": "In the `generateAndUploadCertificate` action, after obtaining the PDF buffer, import and call the `uploadPdf` function from `lib/drive.ts`. Pass the `participant.folderId`, the PDF buffer, and a dynamically generated file name (e.g., `Certificate - ${participant.name}.pdf`). Store the returned file link from the upload result.",
+            "status": "done",
+            "testStrategy": "Trigger the `generateAndUploadCertificate` action for a participant with an existing folder. Verify in Google Drive that the PDF certificate is created inside the correct folder with the correct name."
+          },
+          {
+            "id": 5,
+            "title": "Update Google Sheet with certificate status and link",
+            "description": "After a successful upload, update the participant's row in the Google Sheet with the new certificate link and status.",
+            "dependencies": [
+              "8.4"
+            ],
+            "details": "In the `generateAndUploadCertificate` action, after the `uploadPdf` call succeeds, use the imported `updateParticipantMetadata` function from `lib/sheets.ts`. Call it with the `rowIndex` and an object to update the sheet columns: `{ isCertificateGenerated: 'TRUE', certificateLink: <file_link_from_upload> }`. Finally, call `revalidatePath('/')` to ensure the UI reflects the changes.",
+            "status": "done",
+            "testStrategy": "Trigger the full `generateAndUploadCertificate` action. After it completes, check the Google Sheet to confirm that the `isCertificateGenerated` and `certificateLink` columns for the corresponding participant have been correctly populated."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement Folder Sharing Workflow",
+        "description": "Create a workflow to share the participant's folder via email and update the Google Sheet accordingly.",
+        "details": "Create a server action `shareFolderWithParticipant(folderId, email, rowIndex)`. This action will call the `shareFolder` service from Task 4. Upon success, it will call the `updateParticipantMetadata` service (Task 2) to set `isShared=true` in the Google Sheet. Add a 'Share' button to the dashboard for rows where a folder exists but is not yet shared.",
+        "testStrategy": "Click the 'Share' button on the dashboard. Check the participant's email inbox for a Google Drive sharing notification. Verify in the Google Sheet that the `isShared` column is updated to `TRUE`. The 'Share' button should become disabled after the action is successful.",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          4,
+          5
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create `shareFolderWithParticipant` Server Action",
+            "description": "In `app/_actions/participants.ts`, create a new server action named `shareFolderWithParticipant`. This action will orchestrate the sharing workflow by calling the necessary services.",
+            "dependencies": [],
+            "details": "The action should accept `prevState` and `formData` as arguments, following the `useFormState` pattern. It will extract `folderId`, `email`, and `rowIndex` from the `formData`. It must first call the `shareFolder(folderId, email)` service from `lib/drive.ts`. If successful, it will then call `updateParticipantMetadata(rowIndex, { isShared: true })` from `lib/sheets.ts`. The action should return a state object indicating success or failure, e.g., `{ success: boolean, message: string }`.",
+            "status": "done",
+            "testStrategy": "Manually trigger the server action with mock data and use console logs to verify that `shareFolder` and `updateParticipantMetadata` are called with the correct arguments. Check for proper error handling."
+          },
+          {
+            "id": 2,
+            "title": "Create the `ShareFolderButton` Client Component",
+            "description": "Create a new client component `components/ShareFolderButton.tsx` that will render the 'Share' button and handle its pending state.",
+            "dependencies": [],
+            "details": "This component will use the `useFormStatus` hook from 'react-dom' to access the pending state of the parent form. The button should display 'Sharing...' and be disabled when `pending` is true. Otherwise, it should display 'Share'. This follows the existing pattern used for other action buttons.",
+            "status": "done",
+            "testStrategy": "Render the component within a mock form in Storybook or a test page. Verify the button's text and disabled attribute change correctly based on the form's submission status."
+          },
+          {
+            "id": 3,
+            "title": "Update Participant Type Definition",
+            "description": "Modify the `Participant` type definition in `types/index.ts` to include the new `isShared` property.",
+            "dependencies": [],
+            "details": "Add `isShared: boolean;` to the `Participant` interface or type alias. This will ensure type safety throughout the application when accessing this new property, which is read from the Google Sheet and updated by the sharing workflow.",
+            "status": "done",
+            "testStrategy": "Run the TypeScript compiler (`tsc --noEmit`) to ensure the type change doesn't introduce any errors in the existing codebase. All parts of the code using the Participant type should still compile."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Share Button into Participants Table",
+            "description": "In `components/participants-table.tsx`, add the logic to render the 'Share' button for eligible participants.",
+            "dependencies": [
+              "9.1",
+              "9.2",
+              "9.3"
+            ],
+            "details": "In the 'Actions' column of the table, add a conditional block to render a `<form>` if `participant.isFolderExists` is true and `participant.isShared` is false. This form will use the `useFormState` hook, binding it to the `shareFolderWithParticipant` action. Inside the form, include hidden inputs for `folderId`, `email`, and `rowIndex`, and render the `ShareFolderButton` component.",
+            "status": "done",
+            "testStrategy": "Load the dashboard. Verify that the 'Share' button appears only for rows with an existing folder that has not yet been shared. Check that the hidden inputs in the form are correctly populated with data from the corresponding participant row."
+          },
+          {
+            "id": 5,
+            "title": "Implement UI Feedback and State Update",
+            "description": "Enhance the `participants-table.tsx` component to provide feedback upon action completion and update the UI state.",
+            "dependencies": [
+              "9.4"
+            ],
+            "details": "Use the state returned from the `useFormState` hook (configured in the previous subtask) to display a success or error message (e.g., using a toast notification). After a successful share, the button's form should be replaced by a 'Shared' badge or a disabled button to prevent re-sharing. This can be achieved by checking the form state or by revalidating the page data to get the updated `isShared` status.",
+            "status": "done",
+            "testStrategy": "Click the 'Share' button. Verify that a loading indicator appears. Upon success, confirm that a success message is shown and the 'Share' button is replaced by a 'Shared' status indicator or becomes permanently disabled for that row. Test the failure case to ensure an error message is displayed."
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Build Admin Configuration Page",
+        "description": "Create a simple, protected interface for an admin to view and manage key configuration settings.",
+        "details": "Create a new route `app/admin/page.tsx`. The page will display current settings like Google Sheet ID and the root Google Drive Folder ID, reading them from environment variables. Since there's no login, protection can be achieved via a secret URL or a simple password check stored as an environment variable. This is a read-only view to confirm the setup.",
+        "testStrategy": "Navigate to the `/admin` route. Verify that the correct configuration values from `.env.local` are displayed. Test the simple protection mechanism to ensure the page is not publicly accessible without the required secret.",
+        "priority": "low",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Admin Page Route and Basic Layout",
+            "description": "Create the file for the new admin page route and set up a basic component structure.",
+            "dependencies": [],
+            "details": "Create a new file at `app/admin/page.tsx`. Inside this file, define a basic React server component named `AdminPage` that returns a main container with an `h1` title like 'Admin Configuration'. This establishes the route and foundational component.",
+            "status": "done",
+            "testStrategy": "Navigate to `/admin` in the browser and verify that the 'Admin Configuration' title is displayed."
+          },
+          {
+            "id": 2,
+            "title": "Define and Document Admin Protection Environment Variable",
+            "description": "Add a new environment variable for the admin page protection mechanism and document it.",
+            "dependencies": [],
+            "details": "Add a new variable `ADMIN_SECRET_KEY` to the `.env.example` file with an empty value. In your local `.env.local` file, set this variable to a secure, random string. This key will be used to protect the admin page.",
+            "status": "done",
+            "testStrategy": "Verify that the `ADMIN_SECRET_KEY` variable is present in `.env.example` and can be accessed via `process.env.ADMIN_SECRET_KEY` within the application server environment."
+          },
+          {
+            "id": 3,
+            "title": "Implement Server-Side Protection Logic",
+            "description": "Add server-side logic to the admin page to protect it using a secret key in the URL.",
+            "dependencies": [
+              "10.1",
+              "10.2"
+            ],
+            "details": "In `app/admin/page.tsx`, access the URL search parameters via the `searchParams` prop. Compare the value of a `secret` parameter with the `process.env.ADMIN_SECRET_KEY`. If the keys do not match, render an 'Access Denied' message and do not display any configuration data. The page should only be accessible via a URL like `/admin?secret=YOUR_SECRET_KEY`.",
+            "status": "done",
+            "testStrategy": "Navigate to `/admin` without the secret parameter and verify 'Access Denied' is shown. Navigate with an incorrect secret and verify the same. Navigate with the correct secret key and verify the page content (placeholder for now) is visible."
+          },
+          {
+            "id": 4,
+            "title": "Fetch and Display Configuration Environment Variables",
+            "description": "Read the Google Sheet and Drive Folder IDs from environment variables and display them on the page.",
+            "dependencies": [
+              "10.3"
+            ],
+            "details": "Inside the `AdminPage` component, after the protection check passes, read `process.env.GOOGLE_SHEET_ID` and `process.env.GOOGLE_DRIVE_FOLDER_ID`. Render these values on the page with clear labels like 'Google Sheet ID' and 'Root Google Drive Folder ID'.",
+            "status": "done",
+            "testStrategy": "With the correct secret key in the URL, navigate to the admin page. Verify that the values for the Google Sheet ID and Drive Folder ID displayed on the page match the values in your `.env.local` file."
+          },
+          {
+            "id": 5,
+            "title": "Style Configuration Display using shadcn/ui",
+            "description": "Apply styling to the admin page using shadcn/ui components for a clean and consistent look.",
+            "dependencies": [
+              "10.4"
+            ],
+            "details": "Refactor the display of the configuration settings to use shadcn/ui components. Use a `Card` component to wrap the content. Inside the `Card`, use `CardHeader` for the title and `CardContent` to display the settings. You can use a simple definition list or a two-column layout to present each key-value pair.",
+            "status": "done",
+            "testStrategy": "Navigate to the admin page with the correct secret. Verify that the configuration settings are displayed within a styled `Card` component and the layout is clean and readable, consistent with other potential UI in the app."
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Implement CRUD Operations for Certificate Records",
+        "description": "Enable basic CRUD operations directly from the dashboard, syncing changes back to Google Sheets.",
+        "details": "This task focuses on Update and Delete, as Create is handled by the Google Form. For 'Update', create a modal form using `Dialog` from shadcn/ui, `react-hook-form`, and `zod` for validation to edit a participant's data. The form submission will trigger a server action that updates the corresponding row in Google Sheets. For 'Delete', add a confirmation dialog before triggering a server action to delete the row.",
+        "testStrategy": "Use the 'Edit' button to open a modal, change a participant's name, and save. Verify the change is reflected in the dashboard and the Google Sheet. Use the 'Delete' button, confirm the action, and verify the row is removed from the dashboard and the Google Sheet.",
+        "priority": "low",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Enhance Google Sheets Service for Update and Delete",
+            "description": "In `lib/sheets.ts`, implement two new functions: `updateSheetRow` and `deleteSheetRow` to handle direct modifications to the Google Sheet.",
+            "dependencies": [],
+            "details": "Create a function `updateSheetRow(rowIndex: number, values: any[])` that uses the `sheets.spreadsheets.values.update` method to modify a specific row. Create another function `deleteSheetRow(rowIndex: number)` that uses the `sheets.spreadsheets.batchUpdate` method with a `deleteDimension` request to remove a row. Ensure proper authentication and error handling are in place.",
+            "status": "done",
+            "testStrategy": "Write unit tests or a temporary server action to call `updateSheetRow` with sample data and `deleteSheetRow` with a row index. Verify the changes directly in the Google Sheet."
+          },
+          {
+            "id": 2,
+            "title": "Create Server Actions for Participant Update and Delete",
+            "description": "In `lib/actions.ts`, create `updateParticipantAction` and `deleteParticipantAction` server actions that utilize the new Google Sheets service functions.",
+            "dependencies": [
+              "11.1"
+            ],
+            "details": "The `updateParticipantAction` will accept `rowIndex` and a data object conforming to a Zod schema. It will call `updateSheetRow` from `lib/sheets.ts`. The `deleteParticipantAction` will accept `rowIndex` and call `deleteSheetRow`. Both actions must call `revalidatePath('/dashboard')` upon successful execution to refresh the UI.",
+            "status": "done",
+            "testStrategy": "Trigger the actions from a temporary test page or button. For `updateParticipantAction`, verify the data is updated in the sheet and the dashboard refreshes. For `deleteParticipantAction`, verify the row is removed from the sheet and the dashboard."
+          },
+          {
+            "id": 3,
+            "title": "Build the 'Edit Participant' Modal Form Component",
+            "description": "Create a new client component `EditParticipantForm.tsx` that provides a user interface for editing a participant's details within a modal.",
+            "dependencies": [
+              "11.2"
+            ],
+            "details": "Use shadcn/ui's `Dialog` component for the modal. Implement a form using `react-hook-form` and a Zod schema defined in `lib/schema.ts` for validation. The form should be pre-populated with the selected participant's data. On valid submission, the form should invoke the `updateParticipantAction` server action.",
+            "status": "done",
+            "testStrategy": "Render the component on a test page, passing mock participant data. Verify that the form fields are populated correctly. Test form submission with both valid and invalid data to check validation and server action invocation."
+          },
+          {
+            "id": 4,
+            "title": "Build the 'Delete Participant' Confirmation Dialog",
+            "description": "Create a new client component `DeleteConfirmationDialog.tsx` using shadcn/ui's `AlertDialog` to confirm the deletion of a participant record.",
+            "dependencies": [
+              "11.2"
+            ],
+            "details": "The component will receive the `rowIndex` and the participant's name as props to display a confirmation message (e.g., 'Are you sure you want to delete John Doe?'). The 'Confirm' button within the dialog will trigger the `deleteParticipantAction` server action with the provided `rowIndex`.",
+            "status": "done",
+            "testStrategy": "Render the component on a test page. Clicking the 'Confirm' button should trigger the server action. Verify that the `onClose` or equivalent function is called after the action."
+          },
+          {
+            "id": 5,
+            "title": "Integrate Edit and Delete Actions into the Data Table",
+            "description": "Modify `components/columns.tsx` to add 'Edit' and 'Delete' options to the actions dropdown menu for each row in the participant data table.",
+            "dependencies": [
+              "11.3",
+              "11.4"
+            ],
+            "details": "In the 'Actions' column definition, add two new `DropdownMenuItem`s. The 'Edit' item will trigger the opening of the `EditParticipantForm` modal, passing the full participant data object. The 'Delete' item will trigger the opening of the `DeleteConfirmationDialog`, passing the participant's `rowIndex` and name. Manage the open/closed state of the modals within the component that renders the data table, likely `app/dashboard/page.tsx` or a child component.",
+            "status": "done",
+            "testStrategy": "On the dashboard, click the 'Edit' button for a participant and verify the edit modal opens with the correct data. Make a change and save; verify the dashboard updates. Click the 'Delete' button, confirm the action, and verify the row is removed from the dashboard."
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Add UI Feedback and Error Handling",
+        "description": "Enhance user experience by adding loading states, toast notifications for success/error messages, and comprehensive error handling.",
+        "details": "Use shadcn/ui's `Toast` (or `sonner`) component. Wrap server action calls in `try/catch` blocks. On success, show a success toast (e.g., 'Folder created successfully'). On failure, log the error and show an error toast. Add loading spinners to buttons while server actions are pending to prevent double-clicks and provide visual feedback.",
+        "testStrategy": "Trigger an action like 'Create Folder' and verify a loading indicator appears on the button. Upon completion, check for a success toast. Intentionally break an API call (e.g., wrong Sheet ID) and trigger an action to verify that an error toast is displayed and the app doesn't crash.",
+        "priority": "medium",
+        "dependencies": [
+          5,
+          8,
+          9,
+          11
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Install and Configure `sonner` for Toast Notifications",
+            "description": "Install the `sonner` library, which is a recommended toast component for shadcn/ui. Add the global `Toaster` component to the root layout file (`app/layout.tsx`) to ensure toast notifications can be displayed from anywhere in the application.",
+            "dependencies": [],
+            "details": "Run `pnpm add sonner` to install the dependency. Then, import `Toaster` from `sonner` in `app/layout.tsx` and place it within the `<body>` tag. This setup is a prerequisite for displaying any success or error messages.",
+            "status": "done",
+            "testStrategy": "Create a temporary button on the main page that calls `toast('Test notification')` on click. Verify that the toast appears correctly on the screen."
+          },
+          {
+            "id": 2,
+            "title": "Refactor Server Actions to Return Structured Responses",
+            "description": "Modify the `createParticipantFolder` server action in `lib/actions.ts` to handle errors gracefully and provide a clear success/error status to the client. Wrap the existing logic in a `try/catch` block.",
+            "dependencies": [],
+            "details": "The action should no longer throw an error directly. Instead, it should return an object with a status, e.g., `{ success: true, data: { folderId } }` on success, and `{ success: false, error: 'Failed to create folder.' }` on failure. Log the actual error on the server for debugging purposes.",
+            "status": "done",
+            "testStrategy": "Manually test the server action. Intentionally introduce an error (e.g., by providing invalid credentials or a wrong parent folder ID) and verify that the action returns the `{ success: false, ... }` object instead of crashing the server process."
+          },
+          {
+            "id": 3,
+            "title": "Implement Client-Side Loading State with `useTransition`",
+            "description": "In the client component that renders the 'Create Folder' button (e.g., `participants-table.tsx`), refactor the action call to use the `useTransition` hook. This will provide an `isPending` boolean to track when the server action is in progress.",
+            "dependencies": [
+              "12.2"
+            ],
+            "details": "Import `useTransition` from 'react'. Create a state `const [isPending, startTransition] = useTransition();`. Wrap the call to the `createParticipantFolder` server action inside the `startTransition` function. The `isPending` variable will be used in the next subtask.",
+            "status": "done",
+            "testStrategy": "Add a `console.log('Pending:', isPending)` inside the component. Click the 'Create Folder' button and check the browser console to see the state change from `false` to `true` and back to `false` upon completion."
+          },
+          {
+            "id": 4,
+            "title": "Add Loading Spinner and Disabled State to Action Buttons",
+            "description": "Using the `isPending` state from the `useTransition` hook, provide visual feedback on the 'Create Folder' button during the action. The button should be disabled and display a loading indicator.",
+            "dependencies": [
+              "12.3"
+            ],
+            "details": "Install `lucide-react` if not already present. Import the `Loader2` icon. In the button's JSX, add the `disabled={isPending}` attribute. Conditionally render the `Loader2` icon (with a spinning animation class like `animate-spin`) when `isPending` is true.",
+            "status": "done",
+            "testStrategy": "Click the 'Create Folder' button. Visually confirm that the button becomes unclickable and a spinner icon appears. Verify that the button and spinner return to their normal state after the action finishes."
+          },
+          {
+            "id": 5,
+            "title": "Display Success/Error Toasts on Action Completion",
+            "description": "Leverage the structured response from the server action and the `sonner` setup to show toast notifications to the user after the 'Create Folder' action completes.",
+            "dependencies": [
+              "12.1",
+              "12.2",
+              "12.3"
+            ],
+            "details": "In the `startTransition` callback, after the server action promise resolves, check the `response.success` property. If it's `true`, call `toast.success('Folder created successfully')`. If it's `false`, call `toast.error(response.error)` to display the user-friendly error message from the server.",
+            "status": "done",
+            "testStrategy": "Trigger a successful folder creation and verify a success toast appears. Then, trigger a failed action (as prepared in subtask 12.2's test) and verify a corresponding error toast is displayed."
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-09-14T08:31:09.711Z",
+      "updated": "2025-09-14T10:20:18.716Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
